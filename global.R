@@ -3,12 +3,12 @@
 
 # ---- Carga de librerías ----
 library(shiny)
-#library(shinyWidgets)
-#library(shinyjs)
+library(shinyWidgets)
+library(shinyjs)
 library(bslib)
 library(dplyr)
 library(rvest)
-#library(ggplot2)
+library(ggplot2)
 library(tictoc)
 library(stringr)
 library(purrr)
