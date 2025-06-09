@@ -1,0 +1,23 @@
+.reset-btn {
+  color: #1e2c46;
+  background-color: #de6f41;
+  border: 2px solid #1e2c46;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 10px 20px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  display: block;
+  margin: 20px auto 0 auto;
+}
+.reset-btn:hover {
+  color: #de6f41;
+  background-color: #1e2c46;
+  border-color: #de6f41;
+  cursor: pointer;
+}
+
+#board1-reset_board {
+  background-color: #de6f41 !important;
+  color: #1e2c46 !important;
+}
