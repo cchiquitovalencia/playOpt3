@@ -250,7 +250,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
                          
                          p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
                            "Si estás aquí, es porque ya sabes que puedes mejorar.
-                           No necesitás que te lo digan. Lo sientes. Todos los días.
+                           No necesitas que te lo digan. Lo sientes. Todos los días.
                            Que podrías decidir mejor.
                            Resolver más rápido.
                            Dominar lo complejo sin agotarte."),
@@ -274,8 +274,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
                          
                          
                          p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
-                           "Esto no es solo un juego.
-                           Es un simulador mental.
+                           "Esto es un simulador mental.
                            Un entrenamiento silencioso para desarrollar lo que más escasea hoy:"),
                          
                          div(style = "margin: 20px 0; padding: 15px; background-color: #1e2c46; border-radius: 10px;",
@@ -306,7 +305,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
                            "Sígueme."),
                          
                          p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
-                           "Y empezá a tomar decisiones como quien ya está en otro nivel."),
+                           "Y empieza a tomar decisiones como quien ya está en otro nivel."),
                          
                          div(style = "margin: 20px 0; padding: 15px; background-color: #de6f41; border-radius: 10px;",
                              p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 5px 0;", "👣 El próximo paso no es difícil."),
