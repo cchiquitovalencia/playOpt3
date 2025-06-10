@@ -159,10 +159,18 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     
     # Función para guardar estadísticas
     save_game_stats <- function() {
+      # Usar ruta absoluta
+      data_dir <- "/srv/shiny-server/playOpt3/data"
+      
+      # Imprimir información de diagnóstico
+      print(paste("Directorio actual:", getwd()))
+      print(paste("Intentando crear/guardar en:", data_dir))
+      
       # Crear directorio para datos si no existe
-      data_dir <- "data"
       if (!dir.exists(data_dir)) {
+        print("Creando directorio data...")
         dir.create(data_dir, recursive = TRUE, mode = "0777")
+        print(paste("Directorio creado:", dir.exists(data_dir)))
       }
       
       stats_data <- list(
@@ -179,44 +187,53 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       )
       
       stats_file <- file.path(data_dir, "game_stats.rds")
+      print(paste("Intentando guardar en:", stats_file))
       
       # Intentar guardar con manejo de errores
       tryCatch({
         if (file.exists(stats_file)) {
+          print("Archivo existe, actualizando...")
           existing_stats <- readRDS(stats_file)
           existing_stats <- c(existing_stats, list(stats_data))
           saveRDS(existing_stats, stats_file)
-          message("Datos guardados en: ", stats_file)
+          print("Archivo actualizado exitosamente")
         } else {
+          print("Creando nuevo archivo...")
           saveRDS(list(stats_data), stats_file)
-          message("Nuevo archivo creado en: ", stats_file)
+          print("Nuevo archivo creado exitosamente")
         }
         # Cambiar permisos del archivo
         Sys.chmod(stats_file, mode = "0666")
+        print("Permisos actualizados")
       }, error = function(e) {
-        message("Error al guardar en data_dir: ", e$message)
+        print(paste("Error al guardar en data_dir:", e$message))
         # Si hay error, intentar guardar en /tmp
         tmp_file <- file.path("/tmp", "game_stats.rds")
+        print(paste("Intentando guardar en /tmp:", tmp_file))
+        
         if (file.exists(tmp_file)) {
+          print("Archivo existe en /tmp, actualizando...")
           existing_stats <- readRDS(tmp_file)
           existing_stats <- c(existing_stats, list(stats_data))
           saveRDS(existing_stats, tmp_file)
-          message("Datos guardados en /tmp: ", tmp_file)
+          print("Archivo en /tmp actualizado exitosamente")
         } else {
+          print("Creando nuevo archivo en /tmp...")
           saveRDS(list(stats_data), tmp_file)
-          message("Nuevo archivo creado en /tmp: ", tmp_file)
+          print("Nuevo archivo en /tmp creado exitosamente")
         }
         # Cambiar permisos del archivo en /tmp
         Sys.chmod(tmp_file, mode = "0666")
+        print("Permisos de /tmp actualizados")
       })
       
       # Verificar si el archivo existe en alguna ubicación
       if (file.exists(stats_file)) {
-        message("Archivo existe en data_dir: ", stats_file)
+        print(paste("Archivo existe en data_dir:", stats_file))
       } else if (file.exists(file.path("/tmp", "game_stats.rds"))) {
-        message("Archivo existe en /tmp: ", file.path("/tmp", "game_stats.rds"))
+        print(paste("Archivo existe en /tmp:", file.path("/tmp", "game_stats.rds")))
       } else {
-        message("ADVERTENCIA: No se pudo guardar el archivo en ninguna ubicación")
+        print("ADVERTENCIA: No se pudo guardar el archivo en ninguna ubicación")
       }
     }
     
