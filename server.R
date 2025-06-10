@@ -7,10 +7,10 @@ server <- function(input, output, session) {
   # Inicializar el escenario solo si no existe en userData
   if (is.null(session$userData$escenario_data)) {
     # Selecciona aleatoriamente un escenario HTML para esta sesión
-    elegido <- sample(list.files("./escenarios", pattern = "\\.html$", full.names = TRUE), 1)
+    session$userData$elegido <- sample(list.files("./escenarios", pattern = "\\.html$", full.names = TRUE), 1)
     
     # Carga el escenario
-    session$userData$escenario_data <- cargar_escenario(elegido)
+    session$userData$escenario_data <- cargar_escenario(session$userData$elegido)
     session$userData$tiempo_inicial <- Sys.time()
   }
   
@@ -26,7 +26,8 @@ server <- function(input, output, session) {
     horizontal_connectors = session$userData$escenario_data$horizontal_connectors,
     vertical_connectors = session$userData$escenario_data$vertical_connectors,
     cell_color = function(i, j, value) cell_color(i, j, value, session$userData$escenario_data$special_cells),
-    tiempo_inicial = session$userData$tiempo_inicial
+    tiempo_inicial = session$userData$tiempo_inicial,
+    elegido = session$userData$elegido
   )
   
   # Mostrar el modal de instrucciones al inicio
