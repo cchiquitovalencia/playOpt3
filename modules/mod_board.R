@@ -186,24 +186,38 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
           existing_stats <- readRDS(stats_file)
           existing_stats <- c(existing_stats, list(stats_data))
           saveRDS(existing_stats, stats_file)
+          message("Datos guardados en: ", stats_file)
         } else {
           saveRDS(list(stats_data), stats_file)
+          message("Nuevo archivo creado en: ", stats_file)
         }
         # Cambiar permisos del archivo
         Sys.chmod(stats_file, mode = "0666")
       }, error = function(e) {
+        message("Error al guardar en data_dir: ", e$message)
         # Si hay error, intentar guardar en /tmp
         tmp_file <- file.path("/tmp", "game_stats.rds")
         if (file.exists(tmp_file)) {
           existing_stats <- readRDS(tmp_file)
           existing_stats <- c(existing_stats, list(stats_data))
           saveRDS(existing_stats, tmp_file)
+          message("Datos guardados en /tmp: ", tmp_file)
         } else {
           saveRDS(list(stats_data), tmp_file)
+          message("Nuevo archivo creado en /tmp: ", tmp_file)
         }
         # Cambiar permisos del archivo en /tmp
         Sys.chmod(tmp_file, mode = "0666")
       })
+      
+      # Verificar si el archivo existe en alguna ubicación
+      if (file.exists(stats_file)) {
+        message("Archivo existe en data_dir: ", stats_file)
+      } else if (file.exists(file.path("/tmp", "game_stats.rds"))) {
+        message("Archivo existe en /tmp: ", file.path("/tmp", "game_stats.rds"))
+      } else {
+        message("ADVERTENCIA: No se pudo guardar el archivo en ninguna ubicación")
+      }
     }
     
     # Observador para cuando el juego termina
