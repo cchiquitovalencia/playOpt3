@@ -177,12 +177,12 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         game_won = game_won(),
         click_count = click_count(),
         reset_count = reset_count(),
-        progress = progress_percent(),
+        #progress = progress_percent(),
         click_timestamps = click_timestamps(),
-        board_state = board(),
+        #board_state = board(),
         initial_matrix = initial_matrix,
-        optimo_1 = optimo_1,
-        optimo_2 = optimo_2,
+        #optimo_1 = optimo_1,
+        #optimo_2 = optimo_2,
         timestamp = Sys.time()
       )
       
@@ -207,20 +207,20 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         Sys.chmod(stats_file, mode = "0666")
         print("Permisos actualizados")
         
-        # Intentar guardar en S3
-        tryCatch({
-          print("Intentando guardar en S3...")
-          # Leer el archivo actualizado
-          current_stats <- readRDS(stats_file)
-          # Guardar en S3
-          s3saveRDS(current_stats, 
-                   bucket = "tu-bucket-name", 
-                   object = "game_stats.rds",
-                   region = "tu-region")
-          print("Archivo guardado exitosamente en S3")
-        }, error = function(e) {
-          print(paste("Error al guardar en S3:", e$message))
-        })
+        # # Intentar guardar en S3
+        # tryCatch({
+        #   print("Intentando guardar en S3...")
+        #   # Leer el archivo actualizado
+        #   current_stats <- readRDS(stats_file)
+        #   # Guardar en S3
+        #   s3saveRDS(current_stats, 
+        #            bucket = "tu-bucket-name", 
+        #            object = "game_stats.rds",
+        #            region = "tu-region")
+        #   print("Archivo guardado exitosamente en S3")
+        # }, error = function(e) {
+        #   print(paste("Error al guardar en S3:", e$message))
+        # })
         
       }, error = function(e) {
         print(paste("Error al guardar en data_dir:", e$message))
