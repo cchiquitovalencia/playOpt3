@@ -18,7 +18,6 @@ mod_board_ui <- function(id) {
     ),
     br(),
     uiOutput(ns("stats")),
-    downloadButton(ns("download_times"), "Descargar tiempos entre clics"),
     textOutput(ns("test"))
   )
 }
@@ -195,27 +194,14 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       NULL
     })
     
-    output$download_times <- downloadHandler(
-      filename = function() { 
-        paste0("game_data_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".rds") 
-      },
-      content = function(file) {
-        # Creamos un objeto con todos los datos relevantes
-        download_data <- list(
-          click_timestamps = click_timestamps(),
-          game_won = game_won(),
-          click_count = click_count(),
-          reset_count = reset_count(),
-          progress = progress_percent(),
-          board_state = board(),
-          initial_matrix = initial_matrix,
-          optimo_1 = optimo_1,
-          optimo_2 = optimo_2,
-          timestamp = Sys.time()
-        )
-        saveRDS(download_data, file)
+    # Observador para el botón de reinicio
+    observeEvent(input$reset_board, {
+      if (!game_won()) {
+        board(initial_matrix)
+        previous_board(initial_matrix)
+        reset_count(reset_count() + 1)
       }
-    )
+    })
     
     progress_percent <- reactive({
       total_fillable <- n_rows * n_cols - initial_fixed_cells
