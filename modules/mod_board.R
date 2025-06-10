@@ -159,6 +159,12 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     
     # Función para guardar estadísticas
     save_game_stats <- function() {
+      # Crear directorio para datos si no existe
+      data_dir <- "data"
+      if (!dir.exists(data_dir)) {
+        dir.create(data_dir, recursive = TRUE, mode = "0777")
+      }
+      
       stats_data <- list(
         game_won = game_won(),
         click_count = click_count(),
@@ -172,14 +178,32 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         timestamp = Sys.time()
       )
       
-      stats_file <- "game_stats.rds"
-      if (file.exists(stats_file)) {
-        existing_stats <- readRDS(stats_file)
-        existing_stats <- c(existing_stats, list(stats_data))
-        saveRDS(existing_stats, stats_file)
-      } else {
-        saveRDS(list(stats_data), stats_file)
-      }
+      stats_file <- file.path(data_dir, "game_stats.rds")
+      
+      # Intentar guardar con manejo de errores
+      tryCatch({
+        if (file.exists(stats_file)) {
+          existing_stats <- readRDS(stats_file)
+          existing_stats <- c(existing_stats, list(stats_data))
+          saveRDS(existing_stats, stats_file)
+        } else {
+          saveRDS(list(stats_data), stats_file)
+        }
+        # Cambiar permisos del archivo
+        Sys.chmod(stats_file, mode = "0666")
+      }, error = function(e) {
+        # Si hay error, intentar guardar en /tmp
+        tmp_file <- file.path("/tmp", "game_stats.rds")
+        if (file.exists(tmp_file)) {
+          existing_stats <- readRDS(tmp_file)
+          existing_stats <- c(existing_stats, list(stats_data))
+          saveRDS(existing_stats, tmp_file)
+        } else {
+          saveRDS(list(stats_data), tmp_file)
+        }
+        # Cambiar permisos del archivo en /tmp
+        Sys.chmod(tmp_file, mode = "0666")
+      })
     }
     
     # Observador para cuando el juego termina
