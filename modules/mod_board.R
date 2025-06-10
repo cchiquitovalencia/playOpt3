@@ -56,6 +56,10 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     last_changed_cell <- reactiveVal(NULL)
     game_won <- reactiveVal(FALSE)
     
+    # Registrar inicio de sesión
+    session_id <- session$token
+    session_start_time <- as.POSIXct(Sys.time(), tz = "UTC")
+    
     # ---- Funciones de validación y resaltado ----
     find_matches <- function(mat) {
       to_highlight <- matrix(FALSE, nrow = n_rows, ncol = n_cols)
@@ -182,7 +186,19 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       # Crear timestamp UTC explícito
       current_time_utc <- as.POSIXct(Sys.time(), tz = "UTC")
       
+      # Leer estadísticas existentes o crear nuevas
+      stats_file <- file.path(data_dir, "game_stats.rds")
+      if (file.exists(stats_file)) {
+        all_stats <- readRDS(stats_file)
+      } else {
+        all_stats <- list()
+      }
+      
+      # Crear estadísticas de esta sesión
       stats_data <- list(
+        session_id = session_id,
+        session_start = session_start_time,
+        session_end = current_time_utc,
         game_won = game_won(),
         click_count = click_count(),
         reset_count = reset_count(),
@@ -190,29 +206,28 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         initial_matrix = initial_matrix,
         timestamp = current_time_utc,
         timezone = "UTC",
-        server_timezone = Sys.timezone()  # Guardar la zona horaria del servidor
+        server_timezone = Sys.timezone(),
+        game = elegido
       )
       
-      # Guardar localmente primero
-      stats_file <- file.path(data_dir, "game_stats.rds")
-      print(paste("Intentando guardar en:", stats_file))
+      # Agregar nuevas estadísticas
+      all_stats <- c(all_stats, list(stats_data))
       
-      # Intentar guardar localmente con manejo de errores
+      # Guardar estadísticas actualizadas
       tryCatch({
-        if (file.exists(stats_file)) {
-          print("Archivo existe, actualizando...")
-          existing_stats <- readRDS(stats_file)
-          existing_stats <- c(existing_stats, list(stats_data))
-          saveRDS(existing_stats, stats_file)
-          print("Archivo actualizado exitosamente")
-        } else {
-          print("Creando nuevo archivo...")
-          saveRDS(list(stats_data), stats_file)
-          print("Nuevo archivo creado exitosamente")
-        }
-        # Cambiar permisos del archivo
+        saveRDS(all_stats, stats_file)
         Sys.chmod(stats_file, mode = "0666")
-        print("Permisos actualizados")
+        print("Estadísticas guardadas exitosamente")
+        
+        # Calcular métricas
+        total_sessions <- length(all_stats)
+        sessions_with_clicks <- sum(sapply(all_stats, function(x) x$click_count > 0))
+        completed_games <- sum(sapply(all_stats, function(x) x$game_won))
+        
+        print(paste("Total de sesiones:", total_sessions))
+        print(paste("Sesiones con clicks:", sessions_with_clicks))
+        print(paste("Juegos completados:", completed_games))
+        
       }, error = function(e) {
         print(paste("Error al guardar en data_dir:", e$message))
         # Si hay error, intentar guardar en /tmp
@@ -230,19 +245,9 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
           saveRDS(list(stats_data), tmp_file)
           print("Nuevo archivo en /tmp creado exitosamente")
         }
-        # Cambiar permisos del archivo en /tmp
         Sys.chmod(tmp_file, mode = "0666")
         print("Permisos de /tmp actualizados")
       })
-      
-      # Verificar si el archivo existe en alguna ubicación
-      if (file.exists(stats_file)) {
-        print(paste("Archivo existe en data_dir:", stats_file))
-      } else if (file.exists(file.path("/tmp", "game_stats.rds"))) {
-        print(paste("Archivo existe en /tmp:", file.path("/tmp", "game_stats.rds")))
-      } else {
-        print("ADVERTENCIA: No se pudo guardar el archivo en ninguna ubicación")
-      }
     }
     
     # Observador para cuando el juego termina
