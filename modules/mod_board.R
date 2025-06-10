@@ -158,10 +158,62 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       user_filled_cells(filled)
     })
     
+    # Función para guardar estadísticas
+    save_game_stats <- function() {
+      stats_data <- list(
+        game_won = game_won(),
+        click_count = click_count(),
+        reset_count = reset_count(),
+        progress = progress_percent(),
+        click_timestamps = click_timestamps(),
+        board_state = board(),
+        initial_matrix = initial_matrix,
+        optimo_1 = optimo_1,
+        optimo_2 = optimo_2,
+        timestamp = Sys.time()
+      )
+      
+      stats_file <- "game_stats.rds"
+      if (file.exists(stats_file)) {
+        existing_stats <- readRDS(stats_file)
+        existing_stats <- c(existing_stats, list(stats_data))
+        saveRDS(existing_stats, stats_file)
+      } else {
+        saveRDS(list(stats_data), stats_file)
+      }
+    }
+    
+    # Observador para cuando el juego termina
+    observeEvent(game_won(), {
+      if (game_won()) {
+        save_game_stats()
+      }
+    })
+    
+    output$stats <- renderUI({
+      # Ya no guardamos aquí, solo mostramos NULL
+      NULL
+    })
+    
     output$download_times <- downloadHandler(
-      filename = function() { paste0("click_times_", Sys.time(), ".csv") },
+      filename = function() { 
+        paste0("game_data_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".rds") 
+      },
       content = function(file) {
-        write.csv(click_timestamps(), file, row.names = FALSE)
+        # Creamos un objeto con todos los datos relevantes
+        download_data <- list(
+          click_timestamps = click_timestamps(),
+          game_won = game_won(),
+          click_count = click_count(),
+          reset_count = reset_count(),
+          progress = progress_percent(),
+          board_state = board(),
+          initial_matrix = initial_matrix,
+          optimo_1 = optimo_1,
+          optimo_2 = optimo_2,
+          timestamp = Sys.time()
+        )
+        saveRDS(download_data, file)
       }
     )
     
@@ -170,15 +222,6 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       filled <- user_filled_cells()
       if (total_fillable == 0) return(0)
       round((filled / total_fillable) * 100, 1)
-    })
-    
-    output$stats <- renderUI({
-      tagList(
-        tags$p(paste("Juego terminado:", if (game_won()) "Sí" else "No")),
-        tags$p(paste("Clicks totales:", click_count())),
-        tags$p(paste("Reinicios:", reset_count())),
-        tags$p(paste("Progreso:", progress_percent(), "%"))
-      )
     })
     
     output$reset_button <- renderUI({
@@ -190,14 +233,6 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       } else {
         actionButton(ns("reset_board"), "🔄 Reiniciar Tablero", 
                     class = "btn btn-primary")
-      }
-    })
-    
-    observeEvent(input$reset_board, {
-      if (!game_won()) {
-        board(initial_matrix)
-        previous_board(initial_matrix)
-        reset_count(reset_count() + 1)
       }
     })
     
