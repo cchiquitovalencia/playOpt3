@@ -238,6 +238,86 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     observeEvent(game_won(), {
       if (game_won()) {
         save_game_stats()
+        session$sendCustomMessage("stopTimer", list())
+        showModal(modalDialog(
+          title = HTML("<h2 style='text-align: center; background-color: #1e2c46; color: #de6f41;'>¡Lo lograste! 🎯</h2>"),
+          fluidPage(
+            fluidRow(
+              column(12,
+                     div(style = "padding: 20px; background-color: #f8f9fa; border-radius: 15px;",
+                         p(style = "color: #1e2c46; font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 20px;",
+                           "📣 Esto no es un juego. Es el camino más corto hacia tu mejor versión."),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
+                           "Si estás aquí, es porque ya sabes que puedes mejorar.
+                           No necesitás que te lo digan. Lo sientes. Todos los días.
+                           Que podrías decidir mejor.
+                           Resolver más rápido.
+                           Dominar lo complejo sin agotarte."),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; font-style: italic; margin: 20px 0;",
+                           "Pero nadie te enseñó cómo."),
+                         
+                         p(style = "color: #de6f41; font-size: 18px; font-weight: bold; margin: 20px 0;",
+                           "Hasta ahora."),
+                         
+                         div(style = "text-align: center; margin: 30px 0;",
+                             tags$a(href = "https://www.instagram.com/cchiquitovalencia", 
+                                   target = "_blank",
+                                   style = "background-color: #de6f41; color: #1e2c46; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 18px;",
+                                   "👉 @cchiquitovalencia")
+                         ),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
+                           "Esto no es solo un juego.
+                           Es un simulador mental.
+                           Un entrenamiento silencioso para desarrollar lo que más escasea hoy:"),
+                         
+                         div(style = "margin: 20px 0; padding: 15px; background-color: #1e2c46; border-radius: 10px;",
+                             p(style = "color: #de6f41; font-size: 16px; margin: 5px 0;", "📌 Claridad en la ambigüedad"),
+                             p(style = "color: #de6f41; font-size: 16px; margin: 5px 0;", "📌 Agilidad sin ansiedad"),
+                             p(style = "color: #de6f41; font-size: 16px; margin: 5px 0;", "📌 Estructura con flexibilidad"),
+                             p(style = "color: #de6f41; font-size: 16px; margin: 5px 0;", "📌 Colaboración sin control"),
+                             p(style = "color: #de6f41; font-size: 16px; margin: 5px 0;", "📌 Y decisiones, con impacto real")
+                         ),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 20px 0;",
+                           "Esto no es para los que buscan excusas.
+                           Es para los que buscan atajos reales:"),
+                         
+                         div(style = "margin: 20px 0;",
+                             p(style = "color: #1e2c46; font-size: 16px; margin: 5px 0;", "→ Los que saben que no hay tiempo que perder"),
+                             p(style = "color: #1e2c46; font-size: 16px; margin: 5px 0;", "→ Que usar una herramienta inteligente no es hacer trampa, es optimizar."),
+                             p(style = "color: #1e2c46; font-size: 16px; margin: 5px 0;", "→ Que mejorar no es opcional, es inevitable.")
+                         ),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
+                           "Aquí vas a encontrar una comunidad que piensa distinto, que mejora y que usa lo que tiene para llegar más lejos."),
+                         
+                         p(style = "color: #de6f41; font-size: 18px; font-weight: bold; margin: 20px 0;",
+                           "¿Quieres entrenar tu mente para rendir mejor en lo que importa?"),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 20px 0;",
+                           "Sígueme."),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
+                           "Y empezá a tomar decisiones como quien ya está en otro nivel."),
+                         
+                         div(style = "margin: 20px 0; padding: 15px; background-color: #de6f41; border-radius: 10px;",
+                             p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 5px 0;", "👣 El próximo paso no es difícil."),
+                             p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 5px 0;", "Es distinto."),
+                             p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 5px 0;", "Y empieza ahora.")
+                         ),
+                         
+                         p(style = "color: #1e2c46; font-size: 16px; font-style: italic; text-align: center; margin-top: 20px;",
+                           "Te espero adentro.")
+                     )
+              )
+            )
+          ),
+          easyClose = TRUE,
+          footer = NULL
+        ))
       }
     })
     
