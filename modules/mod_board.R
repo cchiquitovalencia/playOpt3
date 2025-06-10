@@ -59,6 +59,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     # Registrar inicio de sesión
     session_id <- session$token
     session_start_time <- as.POSIXct(Sys.time(), tz = "UTC")
+    last_save_time <- reactiveVal(as.numeric(Sys.time()))
     
     # ---- Funciones de validación y resaltado ----
     find_matches <- function(mat) {
@@ -166,7 +167,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     })
     
     # Función para guardar estadísticas
-    save_game_stats <- function() {
+    save_game_stats <- function(is_session_end = FALSE, is_periodic = FALSE) {
       # Usar ruta absoluta para backup local
       data_dir <- "/srv/shiny-server/playOpt3/data"
       
@@ -175,6 +176,10 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       print(paste("Intentando crear/guardar en:", data_dir))
       print(paste("Zona horaria del sistema:", Sys.timezone()))
       print(paste("Timestamp actual (UTC):", format(Sys.time(), tz = "UTC")))
+      print(paste("Tipo de guardado:", 
+                 if(is_session_end) "Fin de sesión" 
+                 else if(is_periodic) "Periódico" 
+                 else "Juego completado"))
       
       # Crear directorio para datos si no existe
       if (!dir.exists(data_dir)) {
@@ -207,7 +212,10 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         timestamp = current_time_utc,
         timezone = "UTC",
         server_timezone = Sys.timezone(),
-        game = elegido
+        game = elegido,
+        save_type = if(is_session_end) "session_end" 
+                   else if(is_periodic) "periodic" 
+                   else "game_completed"
       )
       
       # Agregar nuevas estadísticas
@@ -223,10 +231,15 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         total_sessions <- length(all_stats)
         sessions_with_clicks <- sum(sapply(all_stats, function(x) x$click_count > 0))
         completed_games <- sum(sapply(all_stats, function(x) x$game_won))
+        abandoned_games <- sum(sapply(all_stats, function(x) !x$game_won && x$click_count > 0))
         
         print(paste("Total de sesiones:", total_sessions))
         print(paste("Sesiones con clicks:", sessions_with_clicks))
         print(paste("Juegos completados:", completed_games))
+        print(paste("Juegos abandonados:", abandoned_games))
+        
+        # Actualizar tiempo del último guardado
+        last_save_time(as.numeric(Sys.time()))
         
       }, error = function(e) {
         print(paste("Error al guardar en data_dir:", e$message))
@@ -247,13 +260,28 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         }
         Sys.chmod(tmp_file, mode = "0666")
         print("Permisos de /tmp actualizados")
+        
+        # Actualizar tiempo del último guardado incluso si hubo error
+        last_save_time(as.numeric(Sys.time()))
       })
     }
+    
+    # Observador para guardado periódico
+    observe({
+      # Verificar cada segundo si han pasado 10 segundos desde el último guardado
+      invalidateLater(1000, session)
+      current_time <- as.numeric(Sys.time())
+      if (current_time - last_save_time() >= 10) {
+        if (click_count() > 0 && !game_won()) {  # Solo guardar si hay actividad y el juego no está completo
+          save_game_stats(is_periodic = TRUE)
+        }
+      }
+    })
     
     # Observador para cuando el juego termina
     observeEvent(game_won(), {
       if (game_won()) {
-        save_game_stats()
+        save_game_stats(is_session_end = FALSE)  # Guardar cuando se completa el juego
         session$sendCustomMessage("stopTimer", list())
         showModal(modalDialog(
           title = HTML("<h2 style='text-align: center; background-color: #1e2c46; color: #de6f41;'>¡Lo lograste! 🎯</h2>"),
@@ -338,6 +366,13 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
           easyClose = TRUE,
           footer = NULL
         ))
+      }
+    })
+    
+    # Observador para cuando la sesión termina
+    session$onSessionEnded(function() {
+      if (!game_won()) {  # Solo guardar si el juego no se completó
+        save_game_stats(is_session_end = TRUE)
       }
     })
     
