@@ -3,23 +3,26 @@
 
 source("modules/mod_board.R") # Carga el módulo del tablero
 
-tiempo_inicial <- Sys.time()
-
 server <- function(input, output, session) {
+  # Selecciona aleatoriamente un escenario HTML para esta sesión
+  elegido <- sample(list.files("./escenarios", pattern = "\\.html$", full.names = TRUE), 1)
+  
+  # Carga el escenario
+  escenario_data <- cargar_escenario(elegido)
   
   # Llama al módulo del tablero, pasando los datos y funciones globales
   mod_board_server(
     id = "board1",
-    optimo_1 = optimo_1,
-    optimo_2 = optimo_2,
-    n_rows = n_rows,
-    n_cols = n_cols,
-    elementos = elementos,
-    special_cells = special_cells,
-    horizontal_connectors = horizontal_connectors,
-    vertical_connectors = vertical_connectors,
-    cell_color = cell_color,
-    tiempo_inicial = tiempo_inicial
+    optimo_1 = escenario_data$optimo_1,
+    optimo_2 = escenario_data$optimo_2,
+    n_rows = escenario_data$n_rows,
+    n_cols = escenario_data$n_cols,
+    elementos = escenario_data$elementos,
+    special_cells = escenario_data$special_cells,
+    horizontal_connectors = escenario_data$horizontal_connectors,
+    vertical_connectors = escenario_data$vertical_connectors,
+    cell_color = function(i, j, value) cell_color(i, j, value, escenario_data$special_cells),
+    tiempo_inicial = Sys.time()
   )
   
   # Mostrar el modal de instrucciones al inicio
@@ -52,6 +55,5 @@ server <- function(input, output, session) {
     removeModal()
     session$sendCustomMessage("startTimer", list())
   })
-  
 }
 
