@@ -92,7 +92,7 @@ ui <- fluidPage(
     "))
   ),
   
-  div(class = "game-title", "🕹️   Optimiza Jugando"),
+  div(class = "game-title", "🕹️   Opt3"),
   setBackgroundColor(
     color = "ghostwhite",
     gradient = c("linear", "radial"),
