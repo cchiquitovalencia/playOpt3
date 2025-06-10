@@ -243,18 +243,18 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         Sys.chmod(tmp_file, mode = "0666")
         print("Permisos de /tmp actualizados")
         
-        # Intentar guardar en S3 desde /tmp
-        tryCatch({
-          print("Intentando guardar en S3 desde /tmp...")
-          current_stats <- readRDS(tmp_file)
-          s3saveRDS(current_stats, 
-                   bucket = "tu-bucket-name", 
-                   object = "game_stats.rds",
-                   region = "tu-region")
-          print("Archivo guardado exitosamente en S3")
-        }, error = function(e) {
-          print(paste("Error al guardar en S3:", e$message))
-        })
+        # # Intentar guardar en S3 desde /tmp
+        # tryCatch({
+        #   print("Intentando guardar en S3 desde /tmp...")
+        #   current_stats <- readRDS(tmp_file)
+        #   s3saveRDS(current_stats, 
+        #            bucket = "tu-bucket-name", 
+        #            object = "game_stats.rds",
+        #            region = "tu-region")
+        #   print("Archivo guardado exitosamente en S3")
+        # }, error = function(e) {
+        #   print(paste("Error al guardar en S3:", e$message))
+        # })
       })
       
       # Verificar si el archivo existe en alguna ubicación
