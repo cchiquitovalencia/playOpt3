@@ -261,12 +261,17 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
                          p(style = "color: #de6f41; font-size: 18px; font-weight: bold; margin: 20px 0;",
                            "Hasta ahora."),
                          
-                         div(style = "text-align: center; margin: 30px 0;",
-                             tags$a(href = "https://www.instagram.com/cchiquitovalencia", 
-                                   target = "_blank",
-                                   style = "background-color: #de6f41; color: #1e2c46; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 18px;",
-                                   "👉 @cchiquitovalencia")
+                        div(
+                           style = "text-align: center; margin: 30px 0;",
+                           tags$a(
+                             href = "https://www.instagram.com/cchiquitovalencia", 
+                             target = "_blank",
+                             style = "background-color: #de6f41; color: #1e2c46; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 18px; display: inline-flex; align-items: center; gap: 10px;",
+                             icon("instagram"),
+                             "👉👉👉 @cchiquitovalencia"
+                           )
                          ),
+                         
                          
                          p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
                            "Esto no es solo un juego.
