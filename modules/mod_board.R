@@ -132,6 +132,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       } else {
         changed_cell <- NA
       }
+      # Obtener timestamp en UTC
       now <- as.numeric(Sys.time())
       df <- click_timestamps()
       time_diff <- if (nrow(df) == 0) NA else now - tail(df$timestamp, 1)
@@ -142,13 +143,16 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         NA
       }
       last_changed_cell(changed_cell)
+      
+      # Crear dataframe con timestamp UTC
       df <- rbind(df, data.frame(
         timestamp = now,
         diff = time_diff,
         celda = changed_cell,
         cambio = cell_status,
         game = elegido,
-        inicio = tiempo_inicial
+        inicio = tiempo_inicial,
+        timezone = "UTC"  # Agregar información de zona horaria
       ))
       click_timestamps(df)
       click_count(click_count() + 1)
@@ -165,6 +169,8 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       # Imprimir información de diagnóstico
       print(paste("Directorio actual:", getwd()))
       print(paste("Intentando crear/guardar en:", data_dir))
+      print(paste("Zona horaria del sistema:", Sys.timezone()))
+      print(paste("Timestamp actual (UTC):", format(Sys.time(), tz = "UTC")))
       
       # Crear directorio para datos si no existe
       if (!dir.exists(data_dir)) {
@@ -173,13 +179,18 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         print(paste("Directorio creado:", dir.exists(data_dir)))
       }
       
+      # Crear timestamp UTC explícito
+      current_time_utc <- as.POSIXct(Sys.time(), tz = "UTC")
+      
       stats_data <- list(
         game_won = game_won(),
         click_count = click_count(),
         reset_count = reset_count(),
         click_timestamps = click_timestamps(),
         initial_matrix = initial_matrix,
-        timestamp = Sys.time()
+        timestamp = current_time_utc,
+        timezone = "UTC",
+        server_timezone = Sys.timezone()  # Guardar la zona horaria del servidor
       )
       
       # Guardar localmente primero
