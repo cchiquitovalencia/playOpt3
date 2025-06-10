@@ -16,6 +16,7 @@ library(tibble)
 library(ompr)
 library(ompr.roi)
 library(ROI.plugin.glpk)
+#library(aws.s3)
 #library(DBI)
 #library(RSQLite)
 

@@ -159,7 +159,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     
     # Función para guardar estadísticas
     save_game_stats <- function() {
-      # Usar ruta absoluta
+      # Usar ruta absoluta para backup local
       data_dir <- "/srv/shiny-server/playOpt3/data"
       
       # Imprimir información de diagnóstico
@@ -186,10 +186,11 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         timestamp = Sys.time()
       )
       
+      # Guardar localmente primero
       stats_file <- file.path(data_dir, "game_stats.rds")
       print(paste("Intentando guardar en:", stats_file))
       
-      # Intentar guardar con manejo de errores
+      # Intentar guardar localmente con manejo de errores
       tryCatch({
         if (file.exists(stats_file)) {
           print("Archivo existe, actualizando...")
@@ -205,6 +206,22 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         # Cambiar permisos del archivo
         Sys.chmod(stats_file, mode = "0666")
         print("Permisos actualizados")
+        
+        # Intentar guardar en S3
+        tryCatch({
+          print("Intentando guardar en S3...")
+          # Leer el archivo actualizado
+          current_stats <- readRDS(stats_file)
+          # Guardar en S3
+          s3saveRDS(current_stats, 
+                   bucket = "tu-bucket-name", 
+                   object = "game_stats.rds",
+                   region = "tu-region")
+          print("Archivo guardado exitosamente en S3")
+        }, error = function(e) {
+          print(paste("Error al guardar en S3:", e$message))
+        })
+        
       }, error = function(e) {
         print(paste("Error al guardar en data_dir:", e$message))
         # Si hay error, intentar guardar en /tmp
@@ -225,6 +242,19 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
         # Cambiar permisos del archivo en /tmp
         Sys.chmod(tmp_file, mode = "0666")
         print("Permisos de /tmp actualizados")
+        
+        # Intentar guardar en S3 desde /tmp
+        tryCatch({
+          print("Intentando guardar en S3 desde /tmp...")
+          current_stats <- readRDS(tmp_file)
+          s3saveRDS(current_stats, 
+                   bucket = "tu-bucket-name", 
+                   object = "game_stats.rds",
+                   region = "tu-region")
+          print("Archivo guardado exitosamente en S3")
+        }, error = function(e) {
+          print(paste("Error al guardar en S3:", e$message))
+        })
       })
       
       # Verificar si el archivo existe en alguna ubicación
@@ -391,6 +421,13 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
                                p(style = "color: #de6f41; font-size: 18px; font-weight: bold; margin: 20px 0;",
                                  "Hasta ahora."),
                                
+                               div(style = "text-align: center; margin: 30px 0;",
+                                   tags$a(href = "https://www.instagram.com/cchiquitovalencia", 
+                                         target = "_blank",
+                                         style = "background-color: #de6f41; color: #1e2c46; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 18px;",
+                                         "👉 @cchiquitovalencia")
+                               ),
+                               
                                p(style = "color: #1e2c46; font-size: 16px; line-height: 1.6;",
                                  "Esto no es solo un juego.
                                  Es un simulador mental.
@@ -430,13 +467,6 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
                                    p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 5px 0;", "👣 El próximo paso no es difícil."),
                                    p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 5px 0;", "Es distinto."),
                                    p(style = "color: #1e2c46; font-size: 16px; font-weight: bold; margin: 5px 0;", "Y empieza ahora.")
-                               ),
-                               
-                               div(style = "text-align: center; margin-top: 30px;",
-                                   tags$a(href = "https://www.instagram.com/cchiquitovalencia", 
-                                         target = "_blank",
-                                         style = "background-color: #1e2c46; color: #de6f41; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 18px;",
-                                         "👉 @cchiquitovalencia")
                                ),
                                
                                p(style = "color: #1e2c46; font-size: 16px; font-style: italic; text-align: center; margin-top: 20px;",
