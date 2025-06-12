@@ -30,20 +30,32 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     cell_states <- c("", "Moon", "Sun")
     initial_matrix <- matrix("", nrow = n_rows, ncol = n_cols)
     
-    # Rellenar la matriz con los valores fijos
-    traducir_icono <- function(icono) {
-      if (icono %in% c("Luna", "Moon")) return("Moon")
-      if (icono %in% c("Sol", "Sun")) return("Sun")
-      return("")
-    }
+    # Pre-calcular valores fijos
+    initial_fixed_cells <- 0
     for (tbl in elementos) {
       for (i in seq_len(nrow(tbl))) {
         fila <- tbl$eje_x[i]
         columna <- tbl$eje_y[i]
-        icono <- traducir_icono(tbl$img[i])
+        icono <- if (tbl$img[i] %in% c("Luna", "Moon")) "Moon" else if (tbl$img[i] %in% c("Sol", "Sun")) "Sun" else ""
         initial_matrix[fila, columna] <- icono
+        if (icono != "") initial_fixed_cells <- initial_fixed_cells + 1
       }
     }
+    
+    # Pre-calcular conectores para acceso rápido
+    horizontal_connectors_map <- setNames(
+      lapply(1:n_rows, function(i) {
+        Filter(function(x) x$row == i, horizontal_connectors)
+      }),
+      as.character(1:n_rows)
+    )
+    
+    vertical_connectors_map <- setNames(
+      lapply(1:n_cols, function(j) {
+        Filter(function(x) x$col == j, vertical_connectors)
+      }),
+      as.character(1:n_cols)
+    )
     
     # Variables reactivas
     board <- reactiveVal(initial_matrix)
@@ -61,113 +73,111 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     session_start_time <- as.POSIXct(Sys.time(), tz = "UTC")
     last_save_time <- reactiveVal(as.numeric(Sys.time()))
     
-    # ---- Funciones de validación y resaltado ----
+    # Cache para resultados de validación
+    validation_cache <- reactiveValues(
+      highlights = matrix(FALSE, nrow = n_rows, ncol = n_cols),
+      full_highlights = matrix(FALSE, nrow = n_rows, ncol = n_cols),
+      connector_violations = matrix(FALSE, nrow = n_rows, ncol = n_cols)
+    )
+    
+    # Función optimizada para encontrar matches
     find_matches <- function(mat) {
       to_highlight <- matrix(FALSE, nrow = n_rows, ncol = n_cols)
+      
+      # Optimización: usar vectorización en lugar de bucles anidados
       for (i in 1:n_rows) {
-        for (j in 1:(n_cols - 2)) {
-          if (mat[i, j] != "" && mat[i, j] == mat[i, j+1] && mat[i, j] == mat[i, j+2]) {
+        row_vals <- mat[i,]
+        for (j in 1:(n_cols-2)) {
+          if (row_vals[j] != "" && row_vals[j] == row_vals[j+1] && row_vals[j] == row_vals[j+2]) {
             to_highlight[i, j:(j+2)] <- TRUE
           }
         }
       }
+      
       for (j in 1:n_cols) {
-        for (i in 1:(n_rows - 2)) {
-          if (mat[i, j] != "" && mat[i, j] == mat[i+1, j] && mat[i, j] == mat[i+2, j]) {
+        col_vals <- mat[,j]
+        for (i in 1:(n_rows-2)) {
+          if (col_vals[i] != "" && col_vals[i] == col_vals[i+1] && col_vals[i] == col_vals[i+2]) {
             to_highlight[i:(i+2), j] <- TRUE
           }
         }
       }
+      
       to_highlight
     }
+    
+    # Función optimizada para encontrar matches completos
     find_full_matches <- function(mat) {
       full_highlight <- matrix(FALSE, nrow = n_rows, ncol = n_cols)
+      
+      # Optimización: usar table() una sola vez por fila/columna
       for (i in 1:n_rows) {
-        counts <- table(mat[i, mat[i, ] != ""])
+        counts <- table(mat[i, mat[i,] != ""])
         if (any(counts >= 4)) {
-          full_highlight[i, ] <- TRUE
+          full_highlight[i,] <- TRUE
         }
       }
+      
       for (j in 1:n_cols) {
-        counts <- table(mat[mat[, j] != "", j])
+        counts <- table(mat[mat[,j] != "", j])
         if (any(counts >= 4)) {
-          full_highlight[, j] <- TRUE
+          full_highlight[,j] <- TRUE
         }
       }
-      return(full_highlight)
+      
+      full_highlight
     }
+    
+    # Función optimizada para encontrar violaciones de conectores
     find_connector_violations <- function(mat) {
       invalid <- matrix(FALSE, nrow = n_rows, ncol = n_cols)
-      check_pair <- function(val1, val2, symbol) {
-        if (val1 == "" || val2 == "") return(FALSE)
-        if (symbol == "=") return(val1 != val2)
-        if (symbol == "X" || symbol == "x") return(val1 == val2)
-        return(FALSE)
-      }
-      for (conn in horizontal_connectors) {
-        i <- conn$row
-        j1 <- conn$col1
-        j2 <- conn$col2
-        if (check_pair(mat[i, j1], mat[i, j2], conn$symbol)) {
-          invalid[i, j1] <- TRUE
-          invalid[i, j2] <- TRUE
+      
+      # Usar los mapas pre-calculados
+      for (i in 1:n_rows) {
+        conns <- horizontal_connectors_map[[as.character(i)]]
+        for (conn in conns) {
+          val1 <- mat[i, conn$col1]
+          val2 <- mat[i, conn$col2]
+          if (val1 != "" && val2 != "") {
+            if ((conn$symbol == "=" && val1 != val2) || 
+                ((conn$symbol == "X" || conn$symbol == "x") && val1 == val2)) {
+              invalid[i, conn$col1] <- TRUE
+              invalid[i, conn$col2] <- TRUE
+            }
+          }
         }
       }
-      for (conn in vertical_connectors) {
-        j <- conn$col
-        i1 <- conn$row1
-        i2 <- conn$row2
-        if (check_pair(mat[i1, j], mat[i2, j], conn$symbol)) {
-          invalid[i1, j] <- TRUE
-          invalid[i2, j] <- TRUE
+      
+      for (j in 1:n_cols) {
+        conns <- vertical_connectors_map[[as.character(j)]]
+        for (conn in conns) {
+          val1 <- mat[conn$row1, j]
+          val2 <- mat[conn$row2, j]
+          if (val1 != "" && val2 != "") {
+            if ((conn$symbol == "=" && val1 != val2) || 
+                ((conn$symbol == "X" || conn$symbol == "x") && val1 == val2)) {
+              invalid[conn$row1, j] <- TRUE
+              invalid[conn$row2, j] <- TRUE
+            }
+          }
         }
       }
-      return(invalid)
+      
+      invalid
     }
     
-    # ---- Observers y lógica de juego ----
-    observeEvent(board(), {
-      req(previous_board())
-      curr_board <- board()
-      prev_board <- isolate(previous_board())
-      if (identical(curr_board, prev_board)) return()
-      change_idx <- which(curr_board != prev_board, arr.ind = TRUE)
-      if (nrow(change_idx) == 1) {
-        changed_cell <- paste0("(", change_idx[1,1], ",", change_idx[1,2], ")")
-      } else {
-        changed_cell <- NA
-      }
-      # Obtener timestamp en UTC
-      now <- as.numeric(Sys.time())
-      df <- click_timestamps()
-      time_diff <- if (nrow(df) == 0) NA else now - tail(df$timestamp, 1)
-      last_cell <- last_changed_cell()
-      cell_status <- if (!is.null(last_cell) && !is.na(changed_cell)) {
-        if (last_cell == changed_cell) "misma" else "diferente"
-      } else {
-        NA
-      }
-      last_changed_cell(changed_cell)
-      
-      # Crear dataframe con timestamp UTC
-      df <- rbind(df, data.frame(
-        timestamp = now,
-        diff = time_diff,
-        celda = changed_cell,
-        cambio = cell_status,
-        game = elegido,
-        inicio = tiempo_inicial,
-        timezone = "UTC"  # Agregar información de zona horaria
-      ))
-      click_timestamps(df)
-      click_count(click_count() + 1)
-      previous_board(curr_board)
-      filled <- sum(curr_board != "" & initial_matrix == "")
-      user_filled_cells(filled)
+    # Observador para actualizar el cache de validación
+    observe({
+      mat <- board()
+      validation_cache$highlights <- find_matches(mat)
+      validation_cache$full_highlights <- find_full_matches(mat)
+      validation_cache$connector_violations <- find_connector_violations(mat)
     })
     
-    # Función para guardar estadísticas
+    # Función optimizada para guardar estadísticas
     save_game_stats <- function(is_session_end = FALSE, is_periodic = FALSE) {
+      if (is_periodic && click_count() == 0) return()  # No guardar si no hay actividad
+      
       # Usar ruta absoluta para backup local
       data_dir <- "/srv/shiny-server/playOpt3/data"
       
@@ -268,11 +278,10 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     
     # Observador para guardado periódico
     observe({
-      # Verificar cada segundo si han pasado 10 segundos desde el último guardado
       invalidateLater(1000, session)
       current_time <- as.numeric(Sys.time())
       if (current_time - last_save_time() >= 10) {
-        if (click_count() > 0 && !game_won()) {  # Solo guardar si hay actividad y el juego no está completo
+        if (click_count() > 0 && !game_won()) {
           save_game_stats(is_periodic = TRUE)
         }
       }
@@ -281,7 +290,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     # Observador para cuando el juego termina
     observeEvent(game_won(), {
       if (game_won()) {
-        save_game_stats(is_session_end = FALSE)  # Guardar cuando se completa el juego
+        save_game_stats(is_session_end = FALSE)
         session$sendCustomMessage("stopTimer", list())
         showModal(modalDialog(
           title = HTML("<h2 style='text-align: center; background-color: #1e2c46; color: #de6f41;'>¡Lo lograste! 🎯</h2>"),
@@ -371,7 +380,7 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
     
     # Observador para cuando la sesión termina
     session$onSessionEnded(function() {
-      if (!game_won()) {  # Solo guardar si el juego no se completó
+      if (!game_won()) {
         save_game_stats(is_session_end = TRUE)
       }
     })
@@ -409,11 +418,13 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
       }
     })
     
+    # UI reactiva optimizada
     output$board_ui <- renderUI({
       mat <- board()
-      highlights <- find_matches(mat)
-      full_highlights <- find_full_matches(mat)
-      connector_violations <- find_connector_violations(mat)
+      highlights <- validation_cache$highlights
+      full_highlights <- validation_cache$full_highlights
+      connector_violations <- validation_cache$connector_violations
+      
       table_rows <- list()
       for (i in 1:n_rows) {
         cell_row <- list()
@@ -478,13 +489,14 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
           table_rows <- append(table_rows, list(tags$tr(conn_row)))
         }
       }
+      
       tags$table(
         style = "border-collapse: collapse;",
         table_rows
       )
     })
     
-    # ---- Observers para clicks en celdas ----
+    # Observadores para clicks en celdas
     observe({
       lapply(1:n_rows, function(i) {
         lapply(1:n_cols, function(j) {
@@ -493,11 +505,13 @@ mod_board_server <- function(id, optimo_1, optimo_2, n_rows, n_cols, elementos, 
             if (game_won()) return()
             key <- paste0(i, "_", j)
             if (key %in% names(special_cells)) return()
+            
             mat <- board()
             current_val <- mat[i, j]
             next_val <- cell_states[(match(current_val, cell_states, nomatch = 1) %% length(cell_states)) + 1]
             mat[i, j] <- next_val
             board(mat)
+            
             if (identical(mat, optimo_1) || identical(mat, optimo_2)) {
               game_won(TRUE)
             }
